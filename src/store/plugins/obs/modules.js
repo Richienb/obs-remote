@@ -5,9 +5,9 @@ import transitions from './module/transitions'
 import durations from './module/durations'
 
 export default {
-	scenes,
-	mixer,
-	stream,
-	transitions,
-	durations
+    scenes,
+    mixer,
+    stream,
+    transitions,
+    durations
 }

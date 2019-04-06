@@ -1,13 +1,14 @@
 .alert {
-	margin-bottom: $spacing;
-	padding: $spacing;
+    margin-bottom: $spacing;
+    padding: $spacing;
 
-	&.warning {
-		background-color: $warning-color;
-		color: #ffffff;
-	}
-	&.error {
-		background-color: $error-color;
-		color: #ffffff;
-	}
+    &.warning {
+        background-color: $warning-color;
+        color: #ffffff;
+    }
+
+    &.error {
+        background-color: $error-color;
+        color: #ffffff;
+    }
 }

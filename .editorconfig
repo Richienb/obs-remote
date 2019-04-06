@@ -1,20 +1,14 @@
-# EditorConfig: http://EditorConfig.org
+# editorconfig.org
 
-# top-most EditorConfig file
 root = true
 
 [*]
 end_of_line = lf
 charset = utf-8
-insert_final_newline = true
 trim_trailing_whitespace = true
-indent_style = tab
-indent_size = 4 # looks nicer on github web
-
-# Only because npm loves it
-[package.json]
+insert_final_newline = true
 indent_style = space
-indent_size = 2
+indent_size = 4
 
 [*.md]
 trim_trailing_whitespace = false

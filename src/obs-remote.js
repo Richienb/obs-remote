@@ -2,140 +2,161 @@ import EventEmitter from 'events'
 import Sha256Hash from 'sha.js/sha256'
 
 export default class OBSRemote extends EventEmitter {
-	constructor() {
-		super()
+    constructor() {
+        super()
 
-		this.debug = () => {}
+        this.debug = () => {}
 
-		this._connecting = null
-		this._idCounter = 1
-		this._promises = {}
-		this._socket = undefined
-	}
+        this._connecting = null
+        this._idCounter = 1
+        this._promises = {}
+        this._socket = undefined
+    }
 
-	/**
-	 * Connect to OBS remote
-	 *
-	 * @returns {Promise}
-	 */
-	connect(host = 'localhost', port = 4444) {
-		if (this._socket) {
-			this._socket.onopen = null
-			this._socket.onmessage = null
-			this._socket.onerror = null
-			this._socket.onclose = null
-			this._socket.close()
-		}
+    /**
+     * Connect to OBS remote
+     *
+     * @returns {Promise}
+     */
+    connect(host = 'localhost', port = 4444) {
+        if (this._socket) {
+            this._socket.onopen = null
+            this._socket.onmessage = null
+            this._socket.onerror = null
+            this._socket.onclose = null
+            this._socket.close()
+        }
 
-		return new Promise((resolve, reject) => {
-			this._connecting = {resolve, reject}
+        return new Promise((resolve, reject) => {
+            this._connecting = {
+                resolve,
+                reject
+            }
 
-			const url = 'ws://' + host + ':' + port
-			this._socket = new WebSocket(url)
+            const url = 'ws://' + host + ':' + port
+            this._socket = new WebSocket(url)
 
-			this._socket.onopen = socketOnOpen.bind(this)
-			this._socket.onmessage = socketOnMessage.bind(this)
-			this._socket.onerror = socketOnError.bind(this)
-			this._socket.onclose = socketOnClose.bind(this)
-		})
-	}
+            this._socket.onopen = socketOnOpen.bind(this)
+            this._socket.onmessage = socketOnMessage.bind(this)
+            this._socket.onerror = socketOnError.bind(this)
+            this._socket.onclose = socketOnClose.bind(this)
+        })
+    }
 
-	/**
-	 * Close socket connection
-	 */
-	close() {
-		if (this._socket) {
-			this._socket.close()
-		}
-	}
+    /**
+     * Close socket connection
+     */
+    close() {
+        if (this._socket) {
+            this._socket.close()
+        }
+    }
 
-	/**
-	 * Sends raw message to OBS remote
-	 *
-	 * @param message
-	 * @returns {Promise}
-	 */
-	send(message) {
-		return new Promise((resolve, reject) => {
-			if (this._socket) {
-				const id = this._nextID()
-				this._promises[id] = {resolve, reject}
+    /**
+     * Sends raw message to OBS remote
+     *
+     * @param message
+     * @returns {Promise}
+     */
+    send(message) {
+        return new Promise((resolve, reject) => {
+            if (this._socket) {
+                const id = this._nextID()
+                this._promises[id] = {
+                    resolve,
+                    reject
+                }
 
-				message['message-id'] = id
+                message['message-id'] = id
 
-				this.debug('send', message)
+                this.debug('send', message)
 
-				this._socket.send(JSON.stringify(message))
-			} else {
-				throw new Error('Connection isn\'t opened')
-			}
-		})
-	}
+                this._socket.send(JSON.stringify(message))
+            } else {
+                throw new Error('Connection isn\'t opened')
+            }
+        })
+    }
 
-	/**
-	 * Convenience method for logging in
-	 *
-	 * @param password
-	 * @returns {Promise}
-	 */
-	async login(password) {
-		const {authRequired, salt, challenge} = await this.send({'request-type': 'GetAuthRequired'})
+    /**
+     * Convenience method for logging in
+     *
+     * @param password
+     * @returns {Promise}
+     */
+    async login(password) {
+        const {
+            authRequired,
+            salt,
+            challenge
+        } = await this.send({
+            'request-type': 'GetAuthRequired'
+        })
 
-		if (!authRequired) {
-			return true
-		}
-		if (!password) {
-			throw new Error('Password Required')
-		}
+        if (!authRequired) {
+            return true
+        }
+        if (!password) {
+            throw new Error('Password Required')
+        }
 
-		const authHash = new Sha256Hash()
-		authHash.update(password)
-		authHash.update(salt)
-		const authResponse = new Sha256Hash()
-		authResponse.update(authHash.digest('base64'))
-		authResponse.update(challenge)
-		const auth = authResponse.digest('base64')
+        const authHash = new Sha256Hash()
+        authHash.update(password)
+        authHash.update(salt)
+        const authResponse = new Sha256Hash()
+        authResponse.update(authHash.digest('base64'))
+        authResponse.update(challenge)
+        const auth = authResponse.digest('base64')
 
-		await this.send({
-			'request-type': 'Authenticate',
-			auth
-		})
-		this.emit('socket.ready')
+        await this.send({
+            'request-type': 'Authenticate',
+            auth
+        })
+        this.emit('socket.ready')
 
-		return true
-	}
+        return true
+    }
 
-	/**
-	 * Get ID for next request
-	 *
-	 * @returns {string}
-	 * @private
-	 */
-	_nextID() {
-		return String(this._idCounter++)
-	}
+    /**
+     * Get ID for next request
+     *
+     * @returns {string}
+     * @private
+     */
+    _nextID() {
+        return String(this._idCounter++)
+    }
 }
 
 /**
  * Handle socket opening
  */
 function socketOnOpen() {
-	if (this._connecting) {
-		const {resolve, reject} = this._connecting
+    if (this._connecting) {
+        const {
+            resolve,
+            reject
+        } = this._connecting
 
-		this.send({'request-type': 'GetAuthRequired'}).then(({authRequired}) => {
-			resolve({authRequired})
+        this.send({
+            'request-type': 'GetAuthRequired'
+        }).then(({
+            authRequired
+        }) => {
+            resolve({
+                authRequired
+            })
 
-			if (authRequired) {
-				this.emit('socket.auth')
-			} else {
-				this.emit('socket.ready')
-			}
-		}, err => reject(err))
+            if (authRequired) {
+                this.emit('socket.auth')
+            } else {
+                this.emit('socket.ready')
+            }
+        }, err => reject(err))
 
-		this._connecting = null
-	}
-	this.emit('socket.open')
+        this._connecting = null
+    }
+    this.emit('socket.open')
 }
 
 /**
@@ -144,25 +165,25 @@ function socketOnOpen() {
  * @param message
  */
 function socketOnMessage(message) {
-	let received
-	try {
-		received = JSON.parse(message.data)
-	} catch (err) {
-		this.emit('error', err)
-	}
+    let received
+    try {
+        received = JSON.parse(message.data)
+    } catch (err) {
+        this.emit('error', err)
+    }
 
-	if (!received) {
-		return
-	}
+    if (!received) {
+        return
+    }
 
-	this.debug('receive', received)
+    this.debug('receive', received)
 
-	const type = received['update-type']
-	if (type) {
-		handleUpdate.call(this, type, received)
-	} else {
-		handleCallback.call(this, received['message-id'], received)
-	}
+    const type = received['update-type']
+    if (type) {
+        handleUpdate.call(this, type, received)
+    } else {
+        handleCallback.call(this, received['message-id'], received)
+    }
 }
 
 /**
@@ -171,11 +192,11 @@ function socketOnMessage(message) {
  * @param error
  */
 function socketOnError(error) {
-	this.emit('socket.error', error)
+    this.emit('socket.error', error)
 }
 
 const disconnectReasons = {
-	1006: 'Server not reachable'
+    1006: 'Server not reachable'
 }
 
 /**
@@ -184,22 +205,22 @@ const disconnectReasons = {
  * @param event
  */
 function socketOnClose(event) {
-	if (this._connecting) {
-		let message = 'Unknown Error'
-		if (event.code in disconnectReasons) {
-			message = disconnectReasons[event.code]
-		} else if (event.message) {
-			message = event.message
-		}
+    if (this._connecting) {
+        let message = 'Unknown Error'
+        if (event.code in disconnectReasons) {
+            message = disconnectReasons[event.code]
+        } else if (event.message) {
+            message = event.message
+        }
 
-		const error = new Error(message)
-		error.event = event
+        const error = new Error(message)
+        error.event = event
 
-		this._connecting.reject(error)
-		this._connecting = null
-	}
+        this._connecting.reject(error)
+        this._connecting = null
+    }
 
-	this.emit('socket.close')
+    this.emit('socket.close')
 }
 
 /**
@@ -209,17 +230,17 @@ function socketOnClose(event) {
  * @param message
  */
 function handleCallback(id, message) {
-	const promise = this._promises[id]
-	if (promise) {
-		if (message.status === 'error') {
-			promise.reject(new Error(message.error))
-		} else {
-			promise.resolve(message)
-		}
-		delete this._promises[id]
-	} else if (message.status === 'error') {
-		this.emit('error', message.error, message)
-	}
+    const promise = this._promises[id]
+    if (promise) {
+        if (message.status === 'error') {
+            promise.reject(new Error(message.error))
+        } else {
+            promise.resolve(message)
+        }
+        delete this._promises[id]
+    } else if (message.status === 'error') {
+        this.emit('error', message.error, message)
+    }
 }
 
 /**
@@ -229,6 +250,6 @@ function handleCallback(id, message) {
  * @param message
  */
 function handleUpdate(type, message) {
-	this.emit('event', message)
-	this.emit(type, message)
+    this.emit('event', message)
+    this.emit(type, message)
 }

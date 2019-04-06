@@ -1,11 +1,10 @@
 {
-	// Settings for frontend
-	"presets": [
-		["env", {
-			"targets": {
-				"browsers": "> 1%, last 2 versions, iOS >= 8, Android >= 4"
-			}
-		}]
-	],
-	"plugins": ["transform-runtime"]
+    "presets": [
+        ["@babel/preset-env", {
+            "targets": {
+                "browsers": "> 1%, last 2 versions, iOS >= 8, Android >= 4"
+            }
+        }]
+    ],
+    "plugins": ["transform-runtime"]
 }
