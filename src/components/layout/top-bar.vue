@@ -10,7 +10,7 @@
                     <button @click="toggleEditing" :class="{'is-highlighted': !hasEdited}" class="material-icons-outlined mdc-icon-button mdc-top-app-bar__action-item--unbounded" aria-label="Edit panels"
                         data-mdc-auto-init="MDCRipple">{{ editing ? 'done' : 'mode_edit' }}</button>
                 </div>
-                <button @click="showSettings(!showingSettings)" class="material-icons-outlined mdc-icon-button mdc-top-app-bar__action-item--unbounded" aria-label="Settings" data-mdc-auto-init="MDCRipple">settings</button>
+                <button @click="modSettings(!showingSettings)" class="material-icons-outlined mdc-icon-button mdc-top-app-bar__action-item--unbounded" aria-label="Settings" data-mdc-auto-init="MDCRipple">settings</button>
                 <button @click="toggleFullscreen" class="material-icons-outlined mdc-icon-button mdc-top-app-bar__action-item--unbounded" aria-label="Full screen" data-mdc-auto-init="MDCRipple">fullscreen</button>
                 <div v-if="connectionReady" key="disconnect-button" style="display: contents">
                     <button @click="disconnect" class="material-icons-outlined mdc-icon-button mdc-top-app-bar__action-item--unbounded" aria-label="Disconnect" data-mdc-auto-init="MDCRipple">power_settings_new</button>
@@ -69,6 +69,12 @@ export default {
                 })
             }
             this.setEditing(!this.editing)
+        },
+        modSettings(show) {
+            this.showSettings(show)
+            if (!dialog) var dialog = new mdc.dialog.MDCDialog(document.querySelector('.settings--global'))
+            if (show) dialog.open()
+            else dialog.close()
         },
         ...mapActions({
             setEditing: 'editing'
